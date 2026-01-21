@@ -250,10 +250,26 @@ class AMS360Client:
         return serialize_object(self.call(op_name, **kwargs))
 
     def last_soap(self) -> Dict[str, str]:
+        def _serialize_envelope(envelope: Any) -> str:
+            if envelope is None:
+                return ""
+            if isinstance(envelope, bytes):
+                return envelope.decode("utf-8")
+            if isinstance(envelope, str):
+                return envelope
+            try:
+                from lxml import etree as letree
+                return letree.tostring(envelope, encoding="unicode")
+            except Exception:
+                try:
+                    return ET.tostring(envelope, encoding="unicode")
+                except Exception:
+                    return str(envelope)
+
         sent = ""
         recv = ""
         if self.history.last_sent:
-            sent = self.history.last_sent["envelope"].decode("utf-8")
+            sent = _serialize_envelope(self.history.last_sent.get("envelope"))
         if self.history.last_received:
-            recv = self.history.last_received["envelope"].decode("utf-8")
+            recv = _serialize_envelope(self.history.last_received.get("envelope"))
         return {"sent": sent, "received": recv}
